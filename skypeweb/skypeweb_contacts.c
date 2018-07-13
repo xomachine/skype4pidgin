@@ -24,6 +24,7 @@
 
 #include "http.h"
 #include "xfer.h"
+#include "conversation.h"
 #include "image-store.h"
 
 static void purple_conversation_write_system_message_ts(
@@ -541,7 +542,8 @@ got_file_send_progress(PurpleHttpConnection *http_conn, PurpleHttpResponse *resp
 		PurpleXmlNode *anchor = purple_xmlnode_new_child(uriobject, "a");
 		PurpleXmlNode *originalname = purple_xmlnode_new_child(uriobject, "OriginalName");
 		PurpleXmlNode *filesize = purple_xmlnode_new_child(uriobject, "FileSize");
-		gchar *message, *temp;
+		PurpleIMConversation *im = purple_conversations_find_im_with_account(xfer->who, purple_xfer_get_account(xfer));
+		gchar *message, *temp, *link;
 		//We finally did it!
 		// May the pesants rejoyce
 		purple_xfer_set_completed(xfer, TRUE);
@@ -557,10 +559,10 @@ got_file_send_progress(PurpleHttpConnection *http_conn, PurpleHttpResponse *resp
 		g_free(temp);
 		purple_xmlnode_insert_data(title, purple_xfer_get_filename(xfer), -1);
 		purple_xmlnode_insert_data(description, "Description: ", -1);
-		temp = g_strconcat("https://login.skype.com/login/sso?go=webclient.xmm&docid=", purple_url_encode(swft->id), NULL);
-		purple_xmlnode_set_attrib(anchor, "href", temp);
-		purple_xmlnode_insert_data(anchor, temp, -1);
-		g_free(temp);
+		link = g_strconcat("https://login.skype.com/login/sso?go=webclient.xmm&docid=", purple_url_encode(swft->id), NULL);
+		purple_xmlnode_set_attrib(anchor, "href", link);
+		purple_xmlnode_insert_data(anchor, link, -1);
+		//g_free(temp);
 		purple_xmlnode_set_attrib(originalname, "v", purple_xfer_get_filename(xfer));
 		temp = g_strdup_printf("%" G_GSIZE_FORMAT, (gsize) purple_xfer_get_size(xfer));
 		purple_xmlnode_set_attrib(filesize, "v", temp);
@@ -569,6 +571,12 @@ got_file_send_progress(PurpleHttpConnection *http_conn, PurpleHttpResponse *resp
 		temp = purple_xmlnode_to_str(uriobject, NULL);
 		message = purple_strreplace(temp, "'", "\"");
 		g_free(temp);
+		// Send the message with a link to an uploaded file into the chat to make
+		// it possible to download the file back.
+		temp = g_strdup_printf("<a href=\"%s\">Download</a> the transfered file.", link);
+		purple_conversation_write_system_message(PURPLE_CONVERSATION(im), temp, PURPLE_MESSAGE_SYSTEM);
+		g_free(temp);
+		g_free(link);
 #if PURPLE_VERSION_CHECK(3, 0, 0)
 		PurpleMessage *msg = purple_message_new_outgoing(swft->from, message, PURPLE_MESSAGE_SEND);
 		skypeweb_send_im(sa->pc, msg);
