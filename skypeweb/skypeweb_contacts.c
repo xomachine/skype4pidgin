@@ -573,7 +573,7 @@ got_file_send_progress(PurpleHttpConnection *http_conn, PurpleHttpResponse *resp
 		g_free(temp);
 		// Send the message with a link to an uploaded file into the chat to make
 		// it possible to download the file back.
-		temp = g_strdup_printf("<a href=\"%s\">Download</a> the transfered file.", link);
+		temp = g_strdup_printf(_("<a href=\"%s\">Download</a> the transfered file."), link);
 		purple_conversation_write_system_message(PURPLE_CONVERSATION(im), temp, PURPLE_MESSAGE_SYSTEM);
 		g_free(temp);
 		g_free(link);
